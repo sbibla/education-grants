@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     search_provider: str = "anthropic"  # anthropic | tavily | brave
     search_api_key: str = ""
     batch_size: int = 10
+    exports_dir: str = "../data/exports"
     default_org_id: int = 1
     cors_origins: list[str] = ["http://localhost:5173"]
 

@@ -38,22 +38,6 @@ class QueueOut(BaseModel):
     search_blocked_reason: str | None
 
 
-class DraftFieldOut(BaseModel):
-    id: int
-    question: str
-    answer: str
-    sources: list
-    needs_human: bool
-
-
-class DraftOut(BaseModel):
-    id: int
-    grant_id: int
-    version: int
-    status: str
-    fields: list[DraftFieldOut]
-
-
 @router.get("/health")
 def health() -> dict:
     return {"status": "ok"}
@@ -171,23 +155,3 @@ def _run_draft_in_background(draft_id: int) -> None:
             run_draft(session, draft_id, StubDrafter())
         except Exception:
             log.exception("draft %s failed", draft_id)
-
-
-@router.get("/drafts/{draft_id}", response_model=DraftOut)
-def get_draft(draft_id: int, session: Session = Depends(get_session)) -> DraftOut:  # noqa: B008
-    draft = session.scalars(
-        select(Draft).options(selectinload(Draft.fields)).where(Draft.id == draft_id, Draft.org_id == ORG_ID)
-    ).first()
-    if draft is None:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    return DraftOut(
-        id=draft.id,
-        grant_id=draft.grant_id,
-        version=draft.version,
-        status=draft.status.value,
-        fields=[
-            DraftFieldOut(id=f.id, question=f.question, answer=f.answer, sources=f.sources,
-                          needs_human=f.needs_human)
-            for f in sorted(draft.fields, key=lambda f: f.id)
-        ],
-    )

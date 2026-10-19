@@ -38,9 +38,19 @@ export interface DraftField {
 export interface Draft {
   id: number
   grant_id: number
+  grant_title: string
+  grant_url: string
+  submission_method: string | null
+  submission_target: string | null
   version: number
-  status: string
+  status: 'drafting' | 'drafted' | 'approved' | 'submitted' | 'failed'
   fields: DraftField[]
+  export_ready: boolean
+}
+
+export interface ApprovePayload {
+  edits: { id: number; answer: string }[]
+  reviewed_ids: number[]
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -58,4 +68,13 @@ export const api = {
   startDraft: (grantId: number) =>
     request<{ draft_id: number; status: string }>(`/grants/${grantId}/draft`, { method: 'POST' }),
   draft: (draftId: number) => request<Draft>(`/drafts/${draftId}`),
+  approve: (draftId: number, payload: ApprovePayload) =>
+    request<Draft>(`/drafts/${draftId}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+  markSubmitted: (draftId: number) =>
+    request<Draft>(`/drafts/${draftId}/mark-submitted`, { method: 'POST' }),
+  exportUrl: (draftId: number) => `/api/drafts/${draftId}/export.docx`,
 }

@@ -1,0 +1,14 @@
+services:
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: sqlite:////data/grants.db
+      CORS_ORIGINS: '["http://localhost:5173"]'
+    volumes:
+      - ./data:/data
+    ports: ["8000:8000"]
+  web:
+    build: ./frontend
+    ports: ["5173:5173"]
+    depends_on: [api]

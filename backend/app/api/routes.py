@@ -1,12 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.config import get_settings
 from app.db.models import Grant, GrantStatus, SearchRun
-from app.db.session import get_session
+from app.db.session import SessionLocal, get_session
 from app.discover.batch_gate import check_gate
+from app.discover.pipeline import run_batch
 
 router = APIRouter()
 ORG_ID = get_settings().default_org_id  # replaced by the authenticated user's org in cloud
@@ -76,7 +79,9 @@ def grants_queue(session: Session = Depends(get_session)) -> QueueOut:
 
 
 @router.post("/search-runs", status_code=202)
-def start_search_run(session: Session = Depends(get_session)) -> dict:
+def start_search_run(
+    background: BackgroundTasks, session: Session = Depends(get_session)
+) -> dict:
     gate = check_gate(session, ORG_ID)
     if not gate.allowed:
         raise HTTPException(status_code=409, detail=gate.reason)
@@ -87,5 +92,15 @@ def start_search_run(session: Session = Depends(get_session)) -> dict:
     )
     session.add(run)
     session.commit()
-    # TODO(phase 3): enqueue discover -> extract -> eligibility pipeline for this run.
+    background.add_task(_run_in_background, run.id)
     return {"search_run_id": run.id, "batch_number": run.batch_number}
+
+
+def _run_in_background(run_id: int) -> None:
+    from app.agents.llm import ClaudeGrantLLM
+
+    with SessionLocal() as session:
+        try:
+            run_batch(session, run_id, ClaudeGrantLLM())
+        except Exception:
+            logging.getLogger(__name__).exception("search run %s failed", run_id)

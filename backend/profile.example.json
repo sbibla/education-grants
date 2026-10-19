@@ -1,0 +1,13 @@
+{
+  "name": "REPLACE: organization legal name",
+  "ein": "REPLACE: XX-XXXXXXX",
+  "tax_status": "501(c)(3) public charity",
+  "region": "REPLACE: e.g. Ventura County, California",
+  "city": "REPLACE",
+  "state": "CA",
+  "mission": "REPLACE: one or two sentences",
+  "annual_budget_usd": null,
+  "program_areas": ["REPLACE: e.g. STEM", "REPLACE: e.g. arts"],
+  "serves": "REPLACE: e.g. K-12 public school students in the district",
+  "notes": "Fill with facts only; the eligibility judge treats this as ground truth."
+}
